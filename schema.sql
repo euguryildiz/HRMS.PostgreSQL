@@ -1,8 +1,26 @@
-/*
+*
  *   DROP SCHEMA FOR ALL TABLES.
 */
 DROP SCHEMA public CASCADE;
 CREATE SCHEMA public;
+
+/*
+ *   FUNCTIONS
+*/
+CREATE OR REPLACE FUNCTION validate_email_by_domain(param_user_id INTEGER, website CHARACTER VARYING(255)) 
+RETURNS BOOLEAN AS $$
+DECLARE
+	DECLARE user_email varchar(320);
+    DECLARE result boolean;
+BEGIN
+	SELECT email INTO user_email FROM users where user_id = param_user_id;
+    SELECT website like '%' || SUBSTRING(user_email,POSITION('@' in user_email) + 1) INTO result;
+	IF result = false THEN
+		raise 'E-mail(%) and web address(%) must have the same domain name.',user_email,website;
+	END IF;
+	RETURN result;
+END; $$ LANGUAGE plpgsql;
+
 
 /*
  *   TABLES
@@ -122,7 +140,8 @@ CREATE TABLE public.employers(
     company_name VARCHAR(255) NOT NULL,
     website VARCHAR(255) NOT NULL,
     CONSTRAINT pk_employers PRIMARY KEY (user_id),
-    CONSTRAINT fk_employers_user_id_users FOREIGN KEY (user_id) REFERENCES public.users (user_id) ON DELETE CASCADE
+    CONSTRAINT fk_employers_user_id_users FOREIGN KEY (user_id) REFERENCES public.users (user_id) ON DELETE CASCADE,
+    CONSTRAINT chk_employers_web_address CHECK (validate_email_by_domain(user_id,website))
 );
 
 CREATE TABLE public.employees(
@@ -225,7 +244,8 @@ CREATE TABLE public.resume_qualifications(
     grade NUMERIC(1,0) NOT NULL,
     CONSTRAINT pk_resume_qualifications PRIMARY KEY (resume_qualification_id),
     CONSTRAINT fk_resume_qualifications_resume_id_resumes FOREIGN KEY (resume_id) REFERENCES public.resumes(resume_id),
-    CONSTRAINT fk_resume_qualifications_qualification_id_qualifications FOREIGN KEY (resume_qualification_id) REFERENCES public.qualifications(qualification_id)
+    CONSTRAINT fk_resume_qualifications_qualification_id_qualifications FOREIGN KEY (resume_qualification_id) REFERENCES public.qualifications(qualification_id),
+    CONSTRAINT ck_resume_qualifications_grade CHECK (grade BETWEEN 1 AND 5)
 );
 
 CREATE TABLE public.resume_websites(
@@ -285,5 +305,6 @@ CREATE TABLE public.resume_languages(
     name VARCHAR(15) NOT NULL,
     grade NUMERIC(1,0) NOT NULL,
     CONSTRAINT pk_resume_languages PRIMARY KEY (resume_language_id),
-    CONSTRAINT fk_resume_languages_resume_id_resumes FOREIGN KEY (resume_id) REFERENCES public.resumes(resume_id)
+    CONSTRAINT fk_resume_languages_resume_id_resumes FOREIGN KEY (resume_id) REFERENCES public.resumes(resume_id),
+    CONSTRAINT ck_resume_languages_grade CHECK (grade BETWEEN 1 AND 5)
 );
