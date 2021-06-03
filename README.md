@@ -1,6 +1,6 @@
 # HRMS (Human Resource Management System)
 ### PostgreSQL - Database
-### <a href="database.sql">Click</a> for script codes.
+### <a href="schema.sql">Click</a> for script codes.
 
 * * *
 
